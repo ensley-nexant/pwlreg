@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools~=65.5.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwlreg"
+version = "0.0.1"
+description = "A scikit-learn-compatible implementation of Piecewise Linear Regression"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy~=1.23.5",
+    "scikit-learn~=1.1.3",
+    "scipy~=1.9.3",
+]

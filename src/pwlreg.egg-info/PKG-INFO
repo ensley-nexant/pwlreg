@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: pwlreg
+Version: 0.0.1
+Summary: A scikit-learn-compatible implementation of Piecewise Linear Regression
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
+# pwlreg
+
+A scikit-learn-compatible implementation of Piecewise Linear Regression
