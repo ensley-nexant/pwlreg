@@ -52,7 +52,7 @@ class TestPWLReg:
                   1.65299640e-01, 1.79942720e-01])
 
     def test_pwlr(self):
-        m = pw.PiecewiseLinearRegression(n_segments=2)
+        m = pw.AutoPiecewiseRegression(n_segments=2)
         m.fit(self.x_small, self.y_small)
 
     def test_matrix_assembly(self):
@@ -69,15 +69,15 @@ class TestPWLReg:
         assert np.allclose(A, Atruth)
 
     def test_fit(self):
-        m = pw.PiecewiseLinearRegression(n_segments=4)
+        m = pw.AutoPiecewiseRegression(n_segments=4)
         m.fit(self.x_small, self.y_small)
         assert np.isclose(m.ssr_, 0.)
 
     def test_fit_rng(self):
         seed = 1234
-        m = pw.PiecewiseLinearRegression(n_segments=2, random_state=np.random.RandomState(seed=seed))
+        m = pw.AutoPiecewiseRegression(n_segments=2, random_state=np.random.RandomState(seed=seed))
         coefs1 = m.fit(self.x_small, self.y_small).coef_
-        m = pw.PiecewiseLinearRegression(n_segments=2, random_state=np.random.RandomState(seed=seed))
+        m = pw.AutoPiecewiseRegression(n_segments=2, random_state=np.random.RandomState(seed=seed))
         coefs2 = m.fit(self.x_small, self.y_small).coef_
         nptest.assert_equal(coefs1, coefs2)
 

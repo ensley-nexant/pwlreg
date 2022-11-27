@@ -1,1 +1,1 @@
-from .pwlreg import PiecewiseLinearRegression
+from .pwlreg import AutoPiecewiseRegression, PiecewiseLinearRegression
