@@ -106,16 +106,10 @@ def _lstsq_constrained(X, y, breaks, degree=1, continuity="c0", weights=None):
         C = _assemble_continuity_constraints(breaks, degree)
         r, _ = C.shape
 
-        K = np.zeros((p + r, p + r))
-        K[:p, :p] = np.dot(Aw.T, Aw)
-        K[:p, p:] = C.T
-        K[p:, :p] = C
-
-        Z = np.zeros(p + r)
-        Z[:p] = np.dot(Aw.T, yw)
-
-        beta = linalg.solve(K, Z)
-        coef = beta[:p]
+        Xln, _, _, _ = _safe_lstsq(C, np.zeros(r))
+        V = linalg.null_space(C)
+        beta, _, _, _ = _safe_lstsq(Aw @ V, yw - Aw @ Xln)
+        coef = V @ beta
 
         e = np.dot(A, coef) - y
         ssr = np.dot(e, e)
@@ -131,6 +125,7 @@ def _auto_piecewise_regression(
     n_segments,
     degree,
     continuity="c0",
+    weights=None,
     solver="auto",
     max_iter=None,
     tol=1e-4,
@@ -151,6 +146,7 @@ def _auto_piecewise_regression(
             n_segments,
             degree,
             continuity,
+            weights,
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,
@@ -162,6 +158,7 @@ def _auto_piecewise_regression(
             n_segments,
             degree,
             continuity,
+            weights,
             solver,
         )
 
@@ -177,6 +174,7 @@ def _solve_diffevo(
     n_segments,
     degree,
     continuity="c0",
+    weights=None,
     max_iter=None,
     tol=1e-4,
     random_state=None,
@@ -190,7 +188,7 @@ def _solve_diffevo(
     res = differential_evolution(
         _fit_opt,
         bounds,
-        (X, y, break_0, break_n, degree, continuity),
+        (X, y, break_0, break_n, degree, continuity, weights),
         popsize=15,
         init="sobol",
         maxiter=max_iter,
@@ -209,6 +207,7 @@ def _solve_minimize(
     n_segments,
     degree,
     continuity,
+    weights,
     solver,
 ):
     return 0, 0
@@ -302,6 +301,7 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
             self.n_segments,
             self.degree,
             self.continuity,
+            weights,
             solver=self.solver,
             random_state=random_state_,
             return_n_iter=True,
