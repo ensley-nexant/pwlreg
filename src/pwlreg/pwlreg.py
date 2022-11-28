@@ -34,7 +34,7 @@ def _assemble_regression_matrix(X, breaks, degree):
     bins = np.digitize(X, breaks).clip(None, len(breaks) - 1)
     for i, d in enumerate(degree):
         for k in range(d + 1):
-            Acols.append(np.where(bins == i+1, X ** k, 0.))
+            Acols.append(np.where(bins == i + 1, X ** k, 0.0))
 
     A = np.column_stack(Acols)
     return A
@@ -46,8 +46,8 @@ def _assemble_continuity_constraints(breaks, degree):
     i = 0
     for b, (d0, d1) in zip(breaks[1:-1], itertools.pairwise(degree)):
         row = np.zeros(m)
-        row[i:(i+d0+1)] = [b ** k for k in range(d0 + 1)]
-        row[(i+d0+1):(i+d0+d1+2)] = [-1. * b ** k for k in range(d1 + 1)]
+        row[i : (i + d0 + 1)] = [b ** k for k in range(d0 + 1)]
+        row[(i + d0 + 1) : (i + d0 + d1 + 2)] = [-1.0 * b ** k for k in range(d1 + 1)]
         Crows.append(row)
         i += d0 + 1
 
@@ -126,25 +126,23 @@ def _lstsq_constrained(X, y, breaks, degree=1, continuity="c0", weights=None):
 
 
 def _auto_piecewise_regression(
-        X,
-        y,
-        n_segments,
-        degree,
-        continuity="c0",
-        solver="auto",
-        max_iter=None,
-        tol=1e-4,
-        random_state=False,
-        return_n_iter=False,
+    X,
+    y,
+    n_segments,
+    degree,
+    continuity="c0",
+    solver="auto",
+    max_iter=None,
+    tol=1e-4,
+    random_state=False,
+    return_n_iter=False,
 ):
     if solver == "auto":
         solver = "diffevo"
 
     _valid_solvers = ("diffevo", "l-bfgs-b")
     if solver not in _valid_solvers:
-        raise ValueError(
-            "Valid solvers are: {}. Got {}".format(_valid_solvers, solver)
-        )
+        raise ValueError("Valid solvers are: {}. Got {}".format(_valid_solvers, solver))
 
     if solver == "diffevo":
         breakpoints, n_iter = _solve_diffevo(
@@ -174,14 +172,14 @@ def _auto_piecewise_regression(
 
 
 def _solve_diffevo(
-        X,
-        y,
-        n_segments,
-        degree,
-        continuity="c0",
-        max_iter=None,
-        tol=1e-4,
-        random_state=None,
+    X,
+    y,
+    n_segments,
+    degree,
+    continuity="c0",
+    max_iter=None,
+    tol=1e-4,
+    random_state=None,
 ):
     break_0, break_n = np.min(X), np.max(X)
 
@@ -206,12 +204,12 @@ def _solve_diffevo(
 
 
 def _solve_minimize(
-        X,
-        y,
-        n_segments,
-        degree,
-        continuity,
-        solver,
+    X,
+    y,
+    n_segments,
+    degree,
+    continuity,
+    solver,
 ):
     return 0, 0
 
@@ -238,18 +236,24 @@ class _BasePiecewiseRegressor(RegressorMixin):
             self.degree = [self.degree] * (len(breaks) - 1)
 
         if len(self.degree) != len(breaks) - 1:
-            msg = "With {} breakpoints, the model will fit {} segment(s). " \
-                  "However, {} degree values were supplied. " \
-                  "The number of degree values must match the number of segments."
+            msg = (
+                "With {} breakpoints, the model will fit {} segment(s). "
+                "However, {} degree values were supplied. "
+                "The number of degree values must match the number of segments."
+            )
             raise ValueError(msg.format(len(breaks), len(breaks) - 1, len(self.degree)))
 
         _valid_continuities = ("c0",)
         if self.continuity and self.continuity not in _valid_continuities:
             raise ValueError(
-                "Continuity must be one of: {}. Got {}".format(_valid_continuities, self.continuity)
+                "Continuity must be one of: {}. Got {}".format(
+                    _valid_continuities, self.continuity
+                )
             )
 
-        self.coef_, self.ssr_ = _lstsq_constrained(X, y, breaks, self.degree, self.continuity, weights)
+        self.coef_, self.ssr_ = _lstsq_constrained(
+            X, y, breaks, self.degree, self.continuity, weights
+        )
         self.n_params_ = len(self.coef_)
         self.is_fitted_ = True
         return self
@@ -275,7 +279,9 @@ class PiecewiseLinearRegression(BaseEstimator, _BasePiecewiseRegressor):
 
 
 class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
-    def __init__(self, n_segments, *, degree=1, continuity="c0", solver="auto", random_state=None):
+    def __init__(
+        self, n_segments, *, degree=1, continuity="c0", solver="auto", random_state=None
+    ):
         self.n_segments = n_segments
         self.solver = solver
         self.random_state = random_state
