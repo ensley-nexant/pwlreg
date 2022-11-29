@@ -33,3 +33,16 @@ plt.show()
 ```
 
 ![pwlreg toy example](img/img.png)
+
+```python
+m.coef_         # [ 1.00  -5.50  1.35 ]
+m.breakpoints_  # [ 1.000000  4.814815  10.000000 ]
+```
+
+$$
+x =
+\begin{cases}
+1,            & 1 \leq x < 4.815 \\
+-5.5 + 1.35x, & 4.815 \leq x < 10
+\end{cases}
+$$
