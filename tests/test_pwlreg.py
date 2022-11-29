@@ -442,3 +442,18 @@ class TestPWLReg:
         m = pw.AutoPiecewiseRegression(n_segments=3, solver="blarg")
         with pytest.raises(ValueError, match="Valid solvers are"):
             m.fit(self.x, self.y)
+
+    def test_autopw_lbfgsb(self):
+        m = pw.AutoPiecewiseRegression(n_segments=3, solver="L-BFGS-B")
+        m.fit(self.x, self.y)
+        assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
+
+    def test_autopw_neldermead(self):
+        m = pw.AutoPiecewiseRegression(n_segments=3, solver="Nelder-Mead")
+        m.fit(self.x, self.y)
+        assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
+
+    def test_autopw_powell(self):
+        m = pw.AutoPiecewiseRegression(n_segments=3, solver="Powell")
+        m.fit(self.x, self.y)
+        assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)

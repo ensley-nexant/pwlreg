@@ -4,7 +4,7 @@ import itertools
 import numbers
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, optimize
 from scipy.optimize import differential_evolution
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils import check_random_state, check_X_y, check_array
@@ -304,8 +304,11 @@ def _auto_piecewise_regression(
         continuity: The level of continuity that will be enforced. "c0" is
             continuous, None is no continuity
         weights: Sample weights
-        solver: Optimization method. Currently supports "diffevo", which is
-            Scipy's differential evolution routine.
+        solver: Optimization method. Currently supports:
+                * "diffevo", Scipy's differential evolution routine
+                * "L-BFGS-B"
+                * "Nelder-Mead"
+                * "Powell"
         max_iter: Maximum number of iterations for the solver to perform
         tol: Numeric convergence tolerance
         random_state: Random state for reproducibility
@@ -319,7 +322,7 @@ def _auto_piecewise_regression(
     if solver == "auto":
         solver = "diffevo"
 
-    _valid_solvers = ("diffevo", "l-bfgs-b")
+    _valid_solvers = ("diffevo", "L-BFGS-B", "Nelder-Mead", "Powell")
     if solver not in _valid_solvers:
         raise ValueError("Valid solvers are: {}. Got {}".format(_valid_solvers, solver))
 
@@ -337,13 +340,7 @@ def _auto_piecewise_regression(
         )
     else:
         breakpoints, n_iter = _solve_minimize(
-            X,
-            y,
-            n_segments,
-            degree,
-            continuity,
-            weights,
-            solver,
+            X, y, n_segments, solver, degree, continuity, weights
         )
 
     if return_n_iter:
@@ -403,16 +400,24 @@ def _solve_diffevo(
     return breaks, res.nit
 
 
-def _solve_minimize(
-    X,
-    y,
-    n_segments,
-    degree,
-    continuity,
-    weights,
-    solver,
-):
-    return 0, 0
+def _solve_minimize(X, y, n_segments, solver, degree, continuity, weights):
+    break_0, break_n = np.min(X), np.max(X)
+    X_guess = np.linspace(break_0, break_n, n_segments, endpoint=False)[1:]
+
+    bounds = np.zeros((n_segments - 1, 2))
+    bounds[:, 0] = break_0
+    bounds[:, 1] = break_n
+
+    res = optimize.minimize(
+        _fit_opt,
+        X_guess,
+        (X, y, break_0, break_n, degree, continuity, weights),
+        method=solver,
+        bounds=bounds,
+    )
+
+    breaks = _augment_breaks(res.x, break_0, break_n)
+    return breaks, res.nit
 
 
 class _BasePiecewiseRegressor(RegressorMixin):
