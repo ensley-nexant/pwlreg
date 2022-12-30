@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pwlreg"
-version = "0.0.1"
+version = "0.1.0"
 description = "A scikit-learn-compatible implementation of Piecewise Linear Regression"
 authors = ["John Ensley <jensley@resource-innovations.com>"]
 license = "Apache-2.0"
