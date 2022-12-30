@@ -6,7 +6,7 @@ from typing import Iterable, Iterator
 import nox
 from nox import Session
 
-python_versions = ["3.11", "3.10"]
+python_versions = ["3.11", "3.10", "3.9", "3.8"]
 
 
 def install(session: nox.Session, *, groups: Iterable[str], root: bool = True) -> None:
@@ -107,3 +107,11 @@ def coverage(session):
         session.run("coverage", "combine")
 
     session.run("coverage", *args)
+
+
+@nox.session(name="pre-commit", python=python_versions)
+def pre_commit(session: Session) -> None:
+    """Lint using pre-commit."""
+    args = session.posargs or ["run", "--all-files", "--show-diff-on-failure"]
+    install(session, groups=["pre-commit"], root=False)
+    session.run("pre-commit", *args)
