@@ -51,14 +51,14 @@ jobs:
           nox --force-color --python=${{ matrix.python-version }}
 
       - name: Upload coverage data
-        if: always() && matrix.session == "tests"
+        if: always() && matrix.session == 'tests'
         uses: actions/upload-artifact@v3
         with:
           name: coverage-data
           path: ".coverage.*"
 
       - name: Upload documentation
-        if: matrix.session == "docs-build"
+        if: matrix.session == 'docs-build'
         uses: actions/upload-artifact@v3
         with:
           name: docs
