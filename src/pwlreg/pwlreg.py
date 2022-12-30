@@ -1,5 +1,4 @@
-"""PWLReg: A flexible implementation of piecewise least squares regression
-"""
+"""PWLReg: A flexible implementation of piecewise least squares regression."""
 import itertools
 import numbers
 
@@ -7,7 +6,7 @@ import numpy as np
 from scipy import linalg, optimize
 from scipy.optimize import differential_evolution
 from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.utils import check_random_state, check_X_y, check_array
+from sklearn.utils import check_array, check_random_state, check_X_y
 from sklearn.utils.validation import check_is_fitted
 
 
@@ -26,8 +25,6 @@ def _check_sample_weight(weights: np.ndarray, X, dtype):
         Validated sample weights
     """
     n_samples = len(X)
-    if dtype is not None and dtype not in (np.float32, np.float64):
-        dtype = np.float64
     if weights is None:
         weights = np.ones(n_samples)
     elif isinstance(weights, numbers.Number):
@@ -62,12 +59,12 @@ def _assemble_regression_matrix(X, breaks, degree):
         [ ...                                                                                             ...]
 
         for degrees d1, ..., di and breakpoints b1, ..., bj
-    """
+    """  # noqa: E501,B950
     Acols = []
     bins = np.digitize(X, breaks).clip(None, len(breaks) - 1)
     for i, d in enumerate(degree):
         for k in range(d + 1):
-            Acols.append(np.where(bins == i + 1, X ** k, 0.0))
+            Acols.append(np.where(bins == i + 1, X**k, 0.0))
 
     A = np.column_stack(Acols)
     return A
@@ -92,10 +89,10 @@ def _assemble_continuity_constraints(breaks, degree):
     m = len(degree) + sum(degree)  # there will be m columns
     Crows = []
     i = 0
-    for b, (d0, d1) in zip(breaks[1:-1], itertools.pairwise(degree)):
+    for b, (d0, d1) in zip(breaks[1:-1], itertools.pairwise(degree), strict=True):
         row = np.zeros(m)
-        row[i : (i + d0 + 1)] = [b ** k for k in range(d0 + 1)]
-        row[(i + d0 + 1) : (i + d0 + d1 + 2)] = [-1.0 * b ** k for k in range(d1 + 1)]
+        row[i : (i + d0 + 1)] = [b**k for k in range(d0 + 1)]
+        row[(i + d0 + 1) : (i + d0 + d1 + 2)] = [-1.0 * b**k for k in range(d1 + 1)]
         Crows.append(row)
         i += d0 + 1
 
@@ -150,7 +147,7 @@ def _fit_opt(breaks, X, y, break_0, break_n, degree, continuity="c0", weights=No
     b_ = _augment_breaks(breaks, break_0, break_n)
     try:
         _, ssr = _lstsq_constrained(X, y, b_, degree, continuity, weights)
-    except linalg.LinAlgError as e:
+    except linalg.LinAlgError as e:  # pragma: no cover
         print(e)
         ssr = np.inf
 
@@ -176,13 +173,13 @@ def _safe_lstsq(A, y):
     """
     coef_, ssr, rank_, singular_ = linalg.lstsq(A, y)
     if isinstance(ssr, list):
-        ssr = ssr[0]
+        ssr = ssr[0]  # pragma: no cover
     elif isinstance(ssr, np.ndarray):
         if ssr.size == 0:
             e = np.dot(A, coef_) - y
             ssr = np.dot(e, e)
         else:
-            ssr = ssr[0]
+            ssr = ssr[0]  # pragma: no cover
 
     coef_ = coef_.T
     return coef_, ssr, rank_, singular_
@@ -346,7 +343,7 @@ def _auto_piecewise_regression(
     if return_n_iter:
         return breakpoints, n_iter
     else:
-        return breakpoints
+        return breakpoints  # pragma: no cover
 
 
 def _solve_diffevo(
@@ -491,6 +488,7 @@ class PiecewiseLinearRegression(BaseEstimator, _BasePiecewiseRegressor):
     """
 
     def __init__(self, *, breakpoints=None, degree=1, continuity="c0"):
+        """Initialize the regression object."""
         self.breakpoints = breakpoints
         super().__init__(degree, continuity)
 
@@ -557,6 +555,7 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
     def __init__(
         self, n_segments, *, degree=1, continuity="c0", solver="auto", random_state=None
     ):
+        """Initialize the auto regression object."""
         self.n_segments = n_segments
         self.solver = solver
         self.random_state = random_state

@@ -1,3 +1,4 @@
+"""Test suite for pwlreg."""
 import numpy as np
 import numpy.testing as nptest
 import pytest
@@ -7,6 +8,8 @@ import pwlreg as pw
 
 
 class TestPWLReg:
+    """Regression tests."""
+
     x_small = np.array([0.0, 1.0, 1.5, 2.0])
     y_small = np.array([0.0, 1.0, 1.1, 1.5])
 
@@ -331,6 +334,7 @@ class TestPWLReg:
     )
 
     def test_matrix_assembly_deg1(self):
+        """Matrix is assembled correctly for the one degree case."""
         x0 = self.x_small.copy()
         breaks = [x0.min(), 1.25, x0.max()]
         A = pw.pwlreg._assemble_regression_matrix(self.x_small, breaks, degree=[1, 1])
@@ -345,6 +349,7 @@ class TestPWLReg:
         assert np.allclose(A, Atruth)
 
     def test_matrix_assembly_deg2(self):
+        """Matrix is assembled correctly for the two degree case."""
         x0 = self.x_small.copy()
         breaks = [x0.min(), 1.25, x0.max()]
         A = pw.pwlreg._assemble_regression_matrix(self.x_small, breaks, degree=[2, 2])
@@ -359,6 +364,7 @@ class TestPWLReg:
         assert np.allclose(A, Atruth)
 
     def test_continuity_constraints_deg1(self):
+        """Continuity constraints are correct for the one degree case."""
         breaks = [np.min(self.x_small), 1.25, 1.75, np.max(self.x_small)]
         C = pw.pwlreg._assemble_continuity_constraints(breaks, degree=[1, 1, 1])
         Ctruth = np.array(
@@ -370,6 +376,7 @@ class TestPWLReg:
         assert np.allclose(C, Ctruth)
 
     def test_continuity_constraints_deg2(self):
+        """Continuity constraints are correct for the two degree case."""
         b = [np.min(self.x_small), 1.25, 1.75, np.max(self.x_small)]
         C = pw.pwlreg._assemble_continuity_constraints(b, degree=[2, 2, 2])
         Ctruth = np.array(
@@ -381,11 +388,13 @@ class TestPWLReg:
         assert np.allclose(C, Ctruth)
 
     def test_fit(self):
+        """Fit method executes."""
         m = pw.AutoPiecewiseRegression(n_segments=3)
         m.fit(self.x, self.y)
         assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
 
     def test_fit_rng(self):
+        """Fit method is deterministic given a seed."""
         seed = 1234
         m = pw.AutoPiecewiseRegression(
             n_segments=2, random_state=np.random.RandomState(seed=seed)
@@ -398,6 +407,7 @@ class TestPWLReg:
         nptest.assert_equal(coefs1, coefs2)
 
     def test_predict_nobreaks_equals_sklearn_regression(self):
+        """Fit aligns with sklearn regression results."""
         m = pw.PiecewiseLinearRegression()
         m.fit(self.x_small, self.y_small)
         y_pred = m.predict(self.x_small)
@@ -410,6 +420,7 @@ class TestPWLReg:
         assert np.allclose(y_pred, y2_pred)
 
     def test_pw_degree_shortform(self):
+        """Degree shorthand expands properly."""
         m = pw.PiecewiseLinearRegression(
             breakpoints=[np.min(self.x), 0.04, np.max(self.x)],
             degree=1,
@@ -418,6 +429,7 @@ class TestPWLReg:
         assert m.degree == [1, 1]
 
     def test_pw_wrong_number_of_degrees(self):
+        """Wrong number of degrees fails gracefully."""
         m = pw.PiecewiseLinearRegression(degree=[1, 2, 3])
         with pytest.raises(
             ValueError,
@@ -426,11 +438,13 @@ class TestPWLReg:
             m.fit(self.x, self.y)
 
     def test_pw_wrong_continuity(self):
+        """Wrong continuity value fails gracefully."""
         m = pw.PiecewiseLinearRegression(continuity="c1000")
         with pytest.raises(ValueError, match="Continuity must be one of"):
             m.fit(self.x, self.y)
 
     def test_pw_weights(self):
+        """Weighted regression runs without problems."""
         m = pw.PiecewiseLinearRegression(
             breakpoints=[np.min(self.x_wt), 65, np.max(self.x_wt)],
             degree=[0, 1],
@@ -438,22 +452,67 @@ class TestPWLReg:
         m.fit(self.x_wt, self.y_wt, weights=1 / self.wts)
         assert 862.5051 == pytest.approx(m.ssr_, rel=1e-2)
 
+    def test_pw_weights_2d_fails(self):
+        """Weights with incorrect dimensions fails gracefully."""
+        m = pw.PiecewiseLinearRegression(
+            breakpoints=[np.min(self.x_wt), 65, np.max(self.x_wt)],
+            degree=[0, 1],
+        )
+        wts = np.column_stack((1 / self.wts, 1 / self.wts))
+        with pytest.raises(ValueError, match="must be 1D"):
+            m.fit(self.x_wt, self.y_wt, weights=wts)
+
+    def test_pw_weights_single_value(self):
+        """Single value for weights expands properly."""
+        m = pw.PiecewiseLinearRegression(
+            breakpoints=[np.min(self.x_wt), 65, np.max(self.x_wt)],
+            degree=[0, 1],
+        )
+        m.fit(self.x_wt, self.y_wt, weights=1)
+        assert 849.0556 == pytest.approx(m.ssr_, abs=1e-2)
+
+    def test_pw_wrong_dim_weights_fails(self):
+        """Weights array with incorrect dimensions fails gracefully."""
+        m = pw.PiecewiseLinearRegression(
+            breakpoints=[np.min(self.x_wt), 65, np.max(self.x_wt)],
+            degree=[0, 1],
+        )
+        with pytest.raises(ValueError, match="weights.shape =="):
+            m.fit(self.x_wt, self.y_wt, weights=1 / self.wts[:10])
+
     def test_autopw_wrong_solver(self):
+        """Unrecognized solver fails gracefully."""
         m = pw.AutoPiecewiseRegression(n_segments=3, solver="blarg")
         with pytest.raises(ValueError, match="Valid solvers are"):
             m.fit(self.x, self.y)
 
     def test_autopw_lbfgsb(self):
+        """Auto regression L-BFGS-B solver runs."""
         m = pw.AutoPiecewiseRegression(n_segments=3, solver="L-BFGS-B")
         m.fit(self.x, self.y)
         assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
 
     def test_autopw_neldermead(self):
+        """Auto regression Nelder-Mead solver runs."""
         m = pw.AutoPiecewiseRegression(n_segments=3, solver="Nelder-Mead")
         m.fit(self.x, self.y)
         assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
 
     def test_autopw_powell(self):
+        """Auto regression Powell solver runs."""
         m = pw.AutoPiecewiseRegression(n_segments=3, solver="Powell")
         m.fit(self.x, self.y)
         assert 2.438e-4 == pytest.approx(m.ssr_, rel=1e-2)
+
+    def test_autopw_one_segment(self):
+        """Auto regression single segment expands correctly."""
+        m = pw.AutoPiecewiseRegression(n_segments=1)
+        m.fit(self.x, self.y)
+        assert 3.368e-3 == pytest.approx(m.ssr_, rel=1e-2)
+
+    def test_autopw_predict(self):
+        """Auto regression prediction runs."""
+        m = pw.AutoPiecewiseRegression(n_segments=3)
+        m.fit(self.x, self.y)
+        preds = m.predict(self.x)
+        assert 6.583e-2 == pytest.approx(np.mean(preds), rel=1e-2)
