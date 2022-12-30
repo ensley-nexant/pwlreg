@@ -15,7 +15,7 @@ documentation = "https://ensley-nexant.github.io/pwlreg"
 keywords = ["piecewise regression", "scikit-learn", "sklearn", "change point"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 numpy = "^1.24.1"
 scikit-learn = "^1.2.0"
 scipy = "^1.9.3"
