@@ -8,9 +8,9 @@ A scikit-learn-compatible implementation of Piecewise Linear Regression
 pip install git+https://github.com/ensley-nexant/pwlreg.git@main#egg=pwlreg
 ```
 
-## Usage Guide
+## Documentation
 
-[See the how-to guide here](https://github.com/ensley-nexant/pwlreg/blob/main/notebooks/howto.ipynb).
+[See the documentation here](https://ensley-nexant.github.io/pwlreg/).
 
 
 ```python
@@ -43,6 +43,7 @@ $$
 x =
 \begin{cases}
 1,            & 1 \leq x < 4.815 \\
+
 -5.5 + 1.35x, & 4.815 \leq x < 10
 \end{cases}
 $$

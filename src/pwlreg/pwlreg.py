@@ -1,8 +1,10 @@
 """PWLReg: A flexible implementation of piecewise least squares regression."""
 import itertools
 import numbers
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 from scipy import linalg, optimize
 from scipy.optimize import differential_evolution
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -185,7 +187,14 @@ def _safe_lstsq(A, y):
     return coef_, ssr, rank_, singular_
 
 
-def _lstsq_constrained(X, y, breaks, degree=1, continuity="c0", weights=None):
+def _lstsq_constrained(
+    X: npt.ArrayLike,
+    y: npt.ArrayLike,
+    breaks: npt.ArrayLike,
+    degree: numbers.Number | list[numbers.Number] = 1,
+    continuity: str = "c0",
+    weights: npt.ArrayLike = None,
+):
     """Solve for least squares coefficients subject to continuity constraints.
 
     minimize || A b - y ||^2
@@ -418,21 +427,31 @@ def _solve_minimize(X, y, n_segments, solver, degree, continuity, weights):
 
 
 class _BasePiecewiseRegressor(RegressorMixin):
-    def __init__(self, degree, continuity):
+    def __init__(self, degree: int | list[int], continuity: str) -> None:
         self.degree = degree
         self.continuity = continuity
 
-    def _assemble_regression_matrix(self, X, breaks):
+    def _assemble_regression_matrix(
+        self, X: npt.ArrayLike, breaks: npt.ArrayLike
+    ) -> npt.ArrayLike:
         return _assemble_regression_matrix(X, breaks, self.degree)
 
     # noinspection PyTypeChecker
-    def _decision_function(self, X, breaks):
+    def _decision_function(
+        self, X: npt.ArrayLike, breaks: npt.ArrayLike
+    ) -> npt.ArrayLike:
         X = check_array(X, accept_sparse=True, ensure_2d=False)
         check_is_fitted(self)
         A = self._assemble_regression_matrix(X, breaks)
         return np.dot(A, self.coef_)
 
-    def fit_with_breaks(self, X, y, breaks, weights=None):
+    def fit_with_breaks(
+        self,
+        X: npt.ArrayLike,
+        y: npt.ArrayLike,
+        breaks: npt.ArrayLike,
+        weights: npt.ArrayLike = None,
+    ) -> "_BasePiecewiseRegressor":
         breaks = breaks if isinstance(breaks, np.ndarray) else np.array(breaks)
 
         if isinstance(self.degree, numbers.Number):
@@ -487,12 +506,20 @@ class PiecewiseLinearRegression(BaseEstimator, _BasePiecewiseRegressor):
         n_params_: Number of estimated parameters.
     """
 
-    def __init__(self, *, breakpoints=None, degree=1, continuity="c0"):
+    def __init__(
+        self,
+        *,
+        breakpoints: npt.ArrayLike = None,
+        degree: int | list[int] = 1,
+        continuity: str = "c0"
+    ) -> None:
         """Initialize the regression object."""
         self.breakpoints = breakpoints
         super().__init__(degree, continuity)
 
-    def fit(self, X, y, *, weights=None):
+    def fit(
+        self, X: npt.ArrayLike, y: npt.ArrayLike, *, weights: npt.ArrayLike = None
+    ) -> "PiecewiseLinearRegression":
         """Fit piecewise regression model.
 
         Args:
@@ -513,7 +540,7 @@ class PiecewiseLinearRegression(BaseEstimator, _BasePiecewiseRegressor):
         self.fit_with_breaks(X, y, self.breakpoints, weights)
         return self
 
-    def predict(self, X):
+    def predict(self, X: npt.ArrayLike) -> npt.ArrayLike:
         """Predict using the fitted piecewise regression model.
 
         Args:
@@ -553,15 +580,23 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
     """
 
     def __init__(
-        self, n_segments, *, degree=1, continuity="c0", solver="auto", random_state=None
-    ):
+        self,
+        n_segments: int,
+        *,
+        degree: int = 1,
+        continuity: str = "c0",
+        solver: str = "auto",
+        random_state: Any = None
+    ) -> None:
         """Initialize the auto regression object."""
         self.n_segments = n_segments
         self.solver = solver
         self.random_state = random_state
         super().__init__(degree, continuity)
 
-    def fit(self, X, y, weights=None):
+    def fit(
+        self, X: npt.ArrayLike, y: npt.ArrayLike, weights: npt.ArrayLike = None
+    ) -> "AutoPiecewiseRegression":
         """Fit piecewise regression model, finding optimal breakpoints.
 
         Args:
@@ -595,7 +630,7 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
 
         return self.fit_with_breaks(X, y, self.breakpoints_)
 
-    def predict(self, X):
+    def predict(self, X: npt.ArrayLike) -> npt.ArrayLike:
         """Predict using the fitted piecewise regression model with optimal breakpoints.
 
         Args:

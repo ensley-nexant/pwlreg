@@ -21,6 +21,8 @@ extra_css:
   - stylesheets/extra.css
 nav:
   - Home: index.md
+  - Quick Start Guide: quickstart.ipynb
+  - API Reference: reference.md
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -40,6 +42,7 @@ plugins:
           import:
             - https://docs.python.org/3/objects.inv
             - https://numpy.org/doc/stable/objects.inv
+            - https://scikit-learn.org/stable/objects.inv
           options:
             show_root_heading: True
             show_root_full_path: False
