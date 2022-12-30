@@ -58,7 +58,7 @@ jobs:
       - name: Upload documentation
         if: matrix.session == 'docs-deploy'
         run: |
-          poetry run mkdocs gh-deploy
+          nox --force-color -s docs-deploy
 
   coverage:
     runs-on: ubuntu-latest
