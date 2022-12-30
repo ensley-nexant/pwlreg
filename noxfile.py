@@ -6,7 +6,12 @@ from typing import Iterable, Iterator
 import nox
 from nox import Session
 
-python_versions = ["3.11", "3.10", "3.9", "3.8"]
+python_versions = ["3.11", "3.10"]
+nox.options.sessions = (
+    "pre-commit",
+    "tests",
+    "docs-build",
+)
 
 
 def install(session: nox.Session, *, groups: Iterable[str], root: bool = True) -> None:
@@ -115,3 +120,19 @@ def pre_commit(session: Session) -> None:
     args = session.posargs or ["run", "--all-files", "--show-diff-on-failure"]
     install(session, groups=["pre-commit"], root=False)
     session.run("pre-commit", *args)
+
+
+@nox.session(name="docs-build", python=python_versions[0])
+def docs_build(session: Session) -> None:
+    """Build the docs with mkdocs."""
+    args = session.posargs
+    install(session, groups=["docs"], root=True)
+    session.run("mkdocs", "build", *args)
+
+
+@nox.session(name="docs-deploy", python=python_versions[0])
+def docs_deploy(session: Session) -> None:
+    """Build the docs with mkdocs."""
+    args = session.posargs
+    install(session, groups=["docs"], root=True)
+    session.run("mkdocs", "gh-deploy", *args)

@@ -16,6 +16,7 @@ jobs:
           - { python-version: "3.11", os: macos-latest, session: "tests" }
           - { python-version: "3.11", os: ubuntu-latest, session: "tests" }
           - { python-version: "3.10", os: ubuntu-latest, session: "tests" }
+          - { python-version: "3.11", os: ubuntu-latest, session: "docs-deploy" }
     env:
       NOXSESSION: ${{ matrix.session }}
 
@@ -55,11 +56,9 @@ jobs:
           path: ".coverage.*"
 
       - name: Upload documentation
-        if: matrix.session == 'docs-build'
-        uses: actions/upload-artifact@v3
-        with:
-          name: docs
-          path: site
+        if: matrix.session == 'docs-deploy'
+        run: |
+          poetry run mkdocs gh-deploy
 
   coverage:
     runs-on: ubuntu-latest

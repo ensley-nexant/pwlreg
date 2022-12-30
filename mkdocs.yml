@@ -1,0 +1,53 @@
+site_name: pwlreg
+site_author: John Ensley
+repo_url: https://github.com/ensley-nexant/pwlreg/
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: ri
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - toc.follow
+extra_css:
+  - stylesheets/extra.css
+nav:
+  - Home: index.md
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - smarty
+  - toc:
+      permalink: True
+  - mkdocs-click
+  - attr_list
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          import:
+            - https://docs.python.org/3/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+          options:
+            show_root_heading: True
+            show_root_full_path: False
+            separate_signature: True
+            docstring_section_style: "table"
+            merge_init_into_class: True
+  - mknotebooks:
+      execute: false
+      timeout: 100
+      allow_errors: false
+copyright: "Copyright &copy; 2022-2023 RESOURCE INNOVATIONS. All rights reserved."
