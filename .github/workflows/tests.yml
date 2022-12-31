@@ -55,11 +55,6 @@ jobs:
           name: coverage-data
           path: ".coverage.*"
 
-      - name: Upload documentation
-        if: matrix.session == 'docs-deploy'
-        run: |
-          nox --force-color -s docs-deploy -- --force
-
   coverage:
     runs-on: ubuntu-latest
     needs: tests
