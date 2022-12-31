@@ -1,5 +1,6 @@
 # pwlreg
 
+[![Tests](https://github.com/ensley-nexant/pwlreg/actions/workflows/tests.yml/badge.svg)](https://github.com/ensley-nexant/pwlreg/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/ensley-nexant/pwlreg/branch/main/graph/badge.svg?token=x8l1hx77eL)](https://codecov.io/gh/ensley-nexant/pwlreg)
 
 A scikit-learn-compatible implementation of Piecewise Linear Regression
