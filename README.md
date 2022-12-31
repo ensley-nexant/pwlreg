@@ -46,7 +46,6 @@ $$
 x =
 \begin{cases}
 1,            & 1 \leq x < 4.815 \\
-
 -5.5 + 1.35x, & 4.815 \leq x < 10
 \end{cases}
 $$
