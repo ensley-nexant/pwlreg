@@ -35,7 +35,7 @@ plt.plot(xx, m.predict(xx), "-")
 plt.show()
 ```
 
-![pwlreg toy example](img/img.png)
+![pwlreg toy example](docs/img/img.png)
 
 ```python
 m.coef_         # [ 1.00  -5.50  1.35 ]
