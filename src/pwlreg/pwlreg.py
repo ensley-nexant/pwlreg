@@ -583,7 +583,7 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
         self,
         n_segments: int,
         *,
-        degree: int = 1,
+        degree: int | list[int] = 1,
         continuity: str = "c0",
         solver: str = "auto",
         random_state: Any = None
