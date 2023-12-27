@@ -14,7 +14,7 @@ except ImportError:
     raise SystemExit(dedent(message)) from None
 
 python_versions = ["3.11", "3.10"]
-nox.options.sessions = ("pre-commit", "tests", "coverage")
+nox.options.sessions = ("pre-commit", "tests")
 
 
 def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
@@ -95,8 +95,12 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
 def tests(session: Session) -> None:
     """Run the test suite."""
     session.install(".")
-    session.install("pytest", "pytest-cov", "pytest-mock")
-    session.run("pytest", *session.posargs)
+    session.install("coverage[toml]", "pytest", "pytest-cov", "pytest-mock")
+    try:
+        session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+    finally:
+        if session.interactive:
+            session.notify("coverage", posargs=[])
 
 
 @session(name="pre-commit", python=python_versions[0])
@@ -123,7 +127,7 @@ def precommit(session: Session) -> None:
         activate_virtualenv_in_precommit_hooks(session)
 
 
-@nox.session(python=python_versions)
+@nox.session(python=python_versions[0])
 def coverage(session: Session) -> None:
     """Generate coverage data."""
     args = session.posargs or ["report"]
