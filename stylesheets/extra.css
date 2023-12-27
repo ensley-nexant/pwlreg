@@ -1,0 +1,13 @@
+[data-md-color-scheme="ri"] {
+    /* Primary color shades */
+    --md-primary-fg-color: #185A7D;
+
+    /* Accent color shades */
+    --md-accent-fg-color:  #E35205;
+}
+
+[data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #00A1CA;
+    --md-accent-fg-color: #E35205;
+    --md-hue: 201;
+}
