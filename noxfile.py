@@ -141,10 +141,9 @@ def docs_build(session: Session) -> None:
     session.run("mkdocs", "build", *args)
 
 
-#
-# @nox.session(name="docs-deploy", python=python_versions[0])
-# def docs_deploy(session: Session) -> None:
-#     """Build the docs with mkdocs."""
-#     args = session.posargs
-#     install(session, groups=["docs"], root=True)
-#     session.run("mkdocs", "gh-deploy", *args)
+@nox.session(name="docs-deploy", python=python_versions[0])
+def docs_deploy(session: Session) -> None:
+    """Build the docs with mkdocs."""
+    args = session.posargs
+    session.install(session, groups=["docs"], root=True)
+    session.run("mkdocs", "gh-deploy", *args)
