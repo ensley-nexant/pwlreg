@@ -14,7 +14,7 @@ except ImportError:
     raise SystemExit(dedent(message)) from None
 
 python_versions = ["3.11", "3.10"]
-nox.options.sessions = ("pre-commit", "tests")
+nox.options.sessions = ("pre-commit", "tests", "coverage")
 
 
 def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
@@ -92,7 +92,7 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
 
 
 @session(python=python_versions)
-def tests(session: Session):
+def tests(session: Session) -> None:
     """Run the test suite."""
     session.install(".")
     session.install("pytest", "pytest-cov", "pytest-mock")
@@ -100,7 +100,7 @@ def tests(session: Session):
 
 
 @session(name="pre-commit", python=python_versions[0])
-def precommit(session: Session):
+def precommit(session: Session) -> None:
     args = session.posargs or [
         "run",
         "--all-files",
@@ -119,27 +119,28 @@ def precommit(session: Session):
         activate_virtualenv_in_precommit_hooks(session)
 
 
-#
-# @nox.session(python=python_versions)
-# def coverage(session):
-#     """Generate coverage data."""
-#     args = session.posargs or ["report"]
-#
-#     install(session, groups=["coverage"], root=False)
-#
-#     if not session.posargs and any(Path().glob(".coverage.*")):
-#         session.run("coverage", "combine")
-#
-#     session.run("coverage", *args)
-#
+@nox.session(python=python_versions)
+def coverage(session: Session) -> None:
+    """Generate coverage data."""
+    args = session.posargs or ["report"]
+    session.install("coverage[toml]")
 
-# @nox.session(name="docs-build", python=python_versions[0])
-# def docs_build(session: Session) -> None:
-#     """Build the docs with mkdocs."""
-#     args = session.posargs
-#     install(session, groups=["docs"], root=True)
-#     session.run("mkdocs", "build", *args)
-#
+    if not session.posargs and any(Path().glob(".coverage.*")):
+        session.run("coverage", "combine")
+
+    session.run("coverage", *args)
+
+
+@nox.session(name="docs-build", python=python_versions[0])
+def docs_build(session: Session) -> None:
+    """Build the docs with mkdocs."""
+    args = session.posargs or ["docs", "docs/_build"]
+
+    session.install(".")
+    session.install(session, groups=["docs"], root=True)
+    session.run("mkdocs", "build", *args)
+
+
 #
 # @nox.session(name="docs-deploy", python=python_versions[0])
 # def docs_deploy(session: Session) -> None:
