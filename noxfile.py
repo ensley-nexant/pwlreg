@@ -110,7 +110,11 @@ def precommit(session: Session) -> None:
     session.install(
         "black",
         "flake8",
+        "flake8-bandit",
+        "flake8-black",
         "flake8-bugbear",
+        "flake8-docstrings",
+        "flake8-isort",
         "isort",
         "pre-commit",
     )
@@ -134,10 +138,20 @@ def coverage(session: Session) -> None:
 @nox.session(name="docs-build", python=python_versions[0])
 def docs_build(session: Session) -> None:
     """Build the docs with mkdocs."""
-    args = session.posargs or ["docs", "docs/_build"]
+    args = session.posargs
 
     session.install(".")
-    session.install(session, groups=["docs"], root=True)
+    session.install(
+        "black",
+        "jupyter",
+        "mkdocs",
+        "mkdocs-autorefs",
+        "mkdocs-click",
+        "mkdocs-material",
+        "mkdocstrings[python]",
+        "mknotebooks",
+        "pygments",
+    )
     session.run("mkdocs", "build", *args)
 
 
@@ -145,5 +159,16 @@ def docs_build(session: Session) -> None:
 def docs_deploy(session: Session) -> None:
     """Build the docs with mkdocs."""
     args = session.posargs
-    session.install(session, groups=["docs"], root=True)
+    session.install(".")
+    session.install(
+        "black",
+        "jupyter",
+        "mkdocs",
+        "mkdocs-autorefs",
+        "mkdocs-click",
+        "mkdocs-material",
+        "mkdocstrings[python]",
+        "mknotebooks",
+        "pygments",
+    )
     session.run("mkdocs", "gh-deploy", *args)
