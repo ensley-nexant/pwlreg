@@ -9,6 +9,7 @@ per-file-ignores =
     __init__.py: F401,E402,I
     # allow assert statements in tests, overriding bandit
     tests/*: S101
+    noxfile.py: S101,D103
 ignore =
     # allow whitespace before ":" to align with black
     E203,

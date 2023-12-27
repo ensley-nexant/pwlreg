@@ -1,138 +1,149 @@
 """Nox file for pwlreg."""
-import sys
+import os
+import shlex
 from pathlib import Path
-from typing import Iterable, Iterator
+from textwrap import dedent
 
 import nox
-from nox import Session
+
+try:
+    from nox_poetry import Session, session
+except ImportError:
+    message = """\
+    Nox failed to import the 'nox-poetry' package."""
+    raise SystemExit(dedent(message)) from None
 
 python_versions = ["3.11", "3.10"]
-nox.options.sessions = (
-    "pre-commit",
-    "tests",
-    "docs-build",
-)
+nox.options.sessions = ("pre-commit", "tests")
 
 
-def install(session: nox.Session, *, groups: Iterable[str], root: bool = True) -> None:
-    """Install the dependency groups using Poetry.
+def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
+    """Activate virtualenv in hooks installed by pre-commit.
 
-    This function installs the given dependency groups into the session's
-    virtual environment. When ``root`` is true (the default), the function
-    also installs the root package and its default dependencies.
-
-    To avoid an editable install, the root package is not installed using
-    ``poetry install``. Instead, the function invokes ``pip install .``
-    to perform a PEP 517 build.
+    This function patches git hooks installed by pre-commit to activate the
+    session's virtual environment. This allows pre-commit to locate hooks in
+    that environment when invoked from git.
 
     Args:
         session: The Session object.
-        groups: The dependency groups to install.
-        root: Install the root package.
     """
-    session.run_always(
-        "poetry",
-        "install",
-        "--no-root",
-        "--sync",
-        "--{}={}".format("with" if root else "only", ",".join(groups)),
-        external=True,
-    )
-    if root:
-        session.install(".")
+    assert session.bin is not None  # nosec noqa
+
+    # Only patch hooks containing a reference to this session's bindir. Support
+    # quoting rules for Python and bash, but strip the outermost quotes so we
+    # can detect paths within the bindir, like <bindir>/python.
+    bindirs = [
+        bindir[1:-1] if bindir[0] in "'\"" else bindir
+        for bindir in (repr(session.bin), shlex.quote(session.bin))
+    ]
+
+    virtualenv = session.env.get("VIRTUAL_ENV")
+    if virtualenv is None:
+        return
+
+    headers = {
+        # pre-commit < 2.16.0
+        "python": f"""\
+            import os
+            os.environ["VIRTUAL_ENV"] = {virtualenv!r}
+            os.environ["PATH"] = os.pathsep.join((
+                {session.bin!r},
+                os.environ.get("PATH", ""),
+            ))
+            """,
+        # pre-commit >= 2.16.0
+        "bash": f"""\
+            VIRTUAL_ENV={shlex.quote(virtualenv)}
+            PATH={shlex.quote(session.bin)}"{os.pathsep}$PATH"
+            """,
+        # pre-commit >= 2.17.0 on Windows forces sh shebang
+        "/bin/sh": f"""\
+            VIRTUAL_ENV={shlex.quote(virtualenv)}
+            PATH={shlex.quote(session.bin)}"{os.pathsep}$PATH"
+            """,
+    }
+
+    hookdir = Path(".git") / "hooks"
+    if not hookdir.is_dir():
+        return
+
+    for hook in hookdir.iterdir():
+        if hook.name.endswith(".sample") or not hook.is_file():
+            continue
+
+        if not hook.read_bytes().startswith(b"#!"):
+            continue
+
+        text = hook.read_text()
+
+        if not any(
+            Path("A") == Path("a") and bindir.lower() in text.lower() or bindir in text
+            for bindir in bindirs
+        ):
+            continue
+
+        lines = text.splitlines()
+
+        for executable, header in headers.items():
+            if executable in lines[0].lower():
+                lines.insert(1, dedent(header))
+                hook.write_text("\n".join(lines))
+                break
 
 
-def export_requirements(session: nox.Session, *, extras: Iterable[str] = ()) -> Path:
-    """Export a requirements file from Poetry.
-
-    This function uses ``poetry export`` to generate a requirements file
-    containing the default dependencies at the versions specified in
-    ``poetry.lock``.
-
-    Args:
-        session: The Session object.
-        extras: Extras supported by the project.
-
-    Returns:
-        The path to the requirements file.
-    """
-    output = session.run_always(
-        "poetry",
-        "export",
-        "--format=requirements.txt",
-        "--without-hashes",
-        *[f"--extras={extra}" for extra in extras],
-        external=True,
-        silent=True,
-        stderr=None,
-    )
-
-    if output is None:
-        session.skip(
-            "The command `poetry export` was not executed "
-            "(a possible cause is specifying `--no-install`)"
-        )
-
-    assert isinstance(output, str)  # noqa: S101
-
-    def _stripwarnings(lines: Iterable[str]) -> Iterator[str]:
-        for line in lines:
-            if line.startswith("Warning:"):
-                print(line, file=sys.stderr)
-                continue
-            yield line
-
-    text = "".join(_stripwarnings(output.splitlines(keepends=True)))
-
-    path = session.cache_dir / "requirements.txt"
-    path.write_text(text)
-
-    return path
-
-
-@nox.session(python=python_versions)
-def tests(session: Session) -> None:
+@session(python=python_versions)
+def tests(session: Session):
     """Run the test suite."""
-    install(session, groups=["coverage", "tests"])
-    try:
-        session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
-    finally:
-        if session.interactive:
-            session.notify("coverage", posargs=[])
+    session.install(".")
+    session.install("pytest", "pytest-cov", "pytest-mock")
+    session.run("pytest", *session.posargs)
 
 
-@nox.session(python=python_versions)
-def coverage(session):
-    """Generate coverage data."""
-    args = session.posargs or ["report"]
-
-    install(session, groups=["coverage"], root=False)
-
-    if not session.posargs and any(Path().glob(".coverage.*")):
-        session.run("coverage", "combine")
-
-    session.run("coverage", *args)
-
-
-@nox.session(name="pre-commit", python=python_versions[0])
-def pre_commit(session: Session) -> None:
-    """Lint using pre-commit."""
-    args = session.posargs or ["run", "--all-files", "--show-diff-on-failure"]
-    install(session, groups=["pre-commit"], root=False)
+@session(name="pre-commit", python=python_versions[0])
+def precommit(session: Session):
+    args = session.posargs or [
+        "run",
+        "--all-files",
+        "--show-diff-on-failure",
+    ]
+    session.install(".")
+    session.install(
+        "black",
+        "flake8",
+        "flake8-bugbear",
+        "isort",
+        "pre-commit",
+    )
     session.run("pre-commit", *args)
+    if args and args[0] == "install":
+        activate_virtualenv_in_precommit_hooks(session)
 
 
-@nox.session(name="docs-build", python=python_versions[0])
-def docs_build(session: Session) -> None:
-    """Build the docs with mkdocs."""
-    args = session.posargs
-    install(session, groups=["docs"], root=True)
-    session.run("mkdocs", "build", *args)
+#
+# @nox.session(python=python_versions)
+# def coverage(session):
+#     """Generate coverage data."""
+#     args = session.posargs or ["report"]
+#
+#     install(session, groups=["coverage"], root=False)
+#
+#     if not session.posargs and any(Path().glob(".coverage.*")):
+#         session.run("coverage", "combine")
+#
+#     session.run("coverage", *args)
+#
 
-
-@nox.session(name="docs-deploy", python=python_versions[0])
-def docs_deploy(session: Session) -> None:
-    """Build the docs with mkdocs."""
-    args = session.posargs
-    install(session, groups=["docs"], root=True)
-    session.run("mkdocs", "gh-deploy", *args)
+# @nox.session(name="docs-build", python=python_versions[0])
+# def docs_build(session: Session) -> None:
+#     """Build the docs with mkdocs."""
+#     args = session.posargs
+#     install(session, groups=["docs"], root=True)
+#     session.run("mkdocs", "build", *args)
+#
+#
+# @nox.session(name="docs-deploy", python=python_versions[0])
+# def docs_deploy(session: Session) -> None:
+#     """Build the docs with mkdocs."""
+#     args = session.posargs
+#     install(session, groups=["docs"], root=True)
+#     session.run("mkdocs", "gh-deploy", *args)
