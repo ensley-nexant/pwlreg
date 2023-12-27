@@ -157,7 +157,7 @@ def docs_build(session: Session) -> None:
 
 @nox.session(name="docs-deploy", python=python_versions[0])
 def docs_deploy(session: Session) -> None:
-    """Build the docs with mkdocs."""
+    """Deploy the docs with mkdocs."""
     args = session.posargs
     session.install(".")
     session.install(

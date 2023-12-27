@@ -83,10 +83,12 @@ jobs:
           pipx inject --pip-args=--constraint=.github/workflows/constraints.txt nox nox-poetry
           nox --version
 
-      - name: Download coverage data
+      - name: Upload coverage data
+        if: always() && matrix.session == 'tests'
         uses: actions/download-artifact@v3
         with:
           name: coverage-data
+          path: ".coverage.*"
 
       - name: Combine coverage data and display human readable report
         run: |
