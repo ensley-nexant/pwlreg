@@ -87,7 +87,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: coverage-data
-          path: ".coverage.*"
 
       - name: Combine coverage data and display human readable report
         run: |
