@@ -98,7 +98,7 @@ def _assemble_continuity_constraints(breaks, degree):
         Crows.append(row)
         i += d0 + 1
 
-    C = np.row_stack(Crows)
+    C = np.vstack(Crows)
     return C
 
 
