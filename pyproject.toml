@@ -39,6 +39,16 @@ post-install-commands = [
 ]
 
 
+[tool.hatch.envs.coverage]
+detached = true
+dependencies = [
+  "coverage[toml]>=6.2",
+]
+[tool.hatch.envs.coverage.scripts]
+combine = "coverage combine {args}"
+report = "coverage report -m --format=markdown"
+
+
 [tool.hatch.envs.docs]
 installer = "uv"
 dependencies = [
