@@ -1,61 +1,105 @@
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
 name = "pwlreg"
-version = "1.0.1"
 description = "A scikit-learn-compatible implementation of Piecewise Linear Regression"
-authors = ["John Ensley <jensley@resource-innovations.com>"]
-license = "Apache-2.0"
+authors = [
+    { name = "John Ensley", email = "jensley@resource-innovations.com" }
+]
 readme = "README.md"
-homepage = "https://github.com/ensley-nexant/pwlreg"
-repository = "https://github.com/ensley-nexant/pwlreg"
-documentation = "https://ensley-nexant.github.io/pwlreg"
+dynamic = ["version"]
+license = "Apache-2.0"
 keywords = ["piecewise regression", "scikit-learn", "sklearn", "change point"]
+dependencies = [
+    "numpy>=1.24.1",
+    "scikit-learn>=1.2.0",
+    "scipy>=1.9.3",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-numpy = "^1.24.1"
-scikit-learn = "^1.2.0"
-scipy = "^1.9.3"
+[project.urls]
+Documentation = "https://ensley-nexant.github.io/pwlreg"
+Source = "https://github.com/ensley-nexant/pwlreg"
+Issues = "https://github.com/ensley-nexant/pwlreg/issues"
+Changelog = "https://github.com/ensley-nexant/pwlreg/releases"
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.group.dev.dependencies]
-black = "^22.12.0"
-coverage = {extras = ["toml"], version = "^7.0.1"}
-isort = "^5.12.0"
-flake8 = "^6.0.0"
-flake8-black = "^0.3.6"
-flake8-isort = "^6.0.0"
-flake8-bugbear = "^22.12.6"
-flake8-bandit = "^4.1.1"
-flake8-docstrings = "^1.6.0"
-pre-commit = "^2.21.0"
-pre-commit-hooks = "^4.4.0"
-pytest = "^7.2.0"
-pytest-cov = "^4.0.0"
+[tool.hatch.version]
+path = "src/pwlreg/__about__.py"
 
 
-[tool.poetry.group.docs.dependencies]
-mkdocs = "^1.4.2"
-mkdocs-material = "^8.5.11"
-mknotebooks = "^0.7.1"
-mkdocstrings = {extras = ["python"], version = "^0.19.1"}
-mkdocs-autorefs = "^0.4.1"
-pygments = "^2.13.0"
-jupyter = "^1.0.0"
-mkdocs-click = "^0.8.0"
+[tool.hatch.envs.default]
+installer = "uv"
+dependencies = [
+    "ipykernel>=6.29.5",
+    "jupytext>=1.16.7",
+]
+post-install-commands = [
+    "hatch run python -m ipykernel install --user --name meteranalytics --display-name {root}"
+]
 
-[tool.coverage.paths]
-source = ["src", "*/site-packages"]
+
+[tool.hatch.envs.coverage]
+detached = true
+dependencies = [
+  "coverage[toml]>=6.2",
+]
+[tool.hatch.envs.coverage.scripts]
+combine = "coverage combine {args}"
+report = "coverage report -m --format=markdown"
+
+
+[tool.hatch.envs.docs]
+installer = "uv"
+dependencies = [
+    "griffe-pydantic~=1.1.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-click>=0.8.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-jupyter>=0.25.1",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-material>=9.6.7",
+    "mkdocs-section-index>=0.3.9",
+    "mkdocstrings[python]>=0.28.3",
+    "ruff>=0.9.10",
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build --clean --strict"
+serve = "mkdocs serve --dev-addr localhost:8000"
+
 
 [tool.coverage.run]
+source_pkgs = ["pwlreg", "tests"]
 branch = true
-source = ["pwlreg"]
+parallel = true
+omit = [
+  "src/pwlreg/__about__.py",
+]
+
+[tool.coverage.paths]
+pwlreg = ["src/pwlreg", "*/pwlreg/src/pwlreg"]
+tests = ["tests", "*/pwlreg/tests"]
 
 [tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
 show_missing = true
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+exclude = ["docs/**/*.py", "notebooks/**/*.py"]
+extend-select = ["D"]
+extend-ignore = ["N803", "N806", "RET504", "D105"]
+pydocstyle = { "convention" = "google" }
+
+[tool.ruff.lint.extend-per-file-ignores]
+"__about__.py" = ["D100"]
+"__init__.py" = ["F401", "F403"]
+"tests/**/*.py" = ["ARG001", "D", "SLF001"]
