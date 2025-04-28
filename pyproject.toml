@@ -78,3 +78,18 @@ exclude_lines = [
   "if TYPE_CHECKING:",
 ]
 show_missing = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+exclude = ["docs/**/*.py", "notebooks/**/*.py"]
+extend-select = ["D"]
+extend-ignore = ["N803", "N806", "RET504", "D105"]
+pydocstyle = { "convention" = "google" }
+
+[tool.ruff.lint.extend-per-file-ignores]
+"__about__.py" = ["D100"]
+"__init__.py" = ["F401", "F403"]
+"tests/**/*.py" = ["ARG001", "D", "SLF001"]

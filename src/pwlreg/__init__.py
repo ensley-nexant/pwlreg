@@ -1,2 +1,3 @@
 """Piecewise linear regression."""
-from .pwlreg import AutoPiecewiseRegression, PiecewiseLinearRegression
+
+from pwlreg.pwlreg import AutoPiecewiseRegression, PiecewiseLinearRegression

@@ -1,5 +1,7 @@
 """PWLReg: A flexible implementation of piecewise least squares regression."""
+
 import itertools
+import logging
 import numbers
 from typing import Any
 
@@ -10,6 +12,9 @@ from scipy.optimize import differential_evolution
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils import check_array, check_random_state, check_X_y
 from sklearn.utils.validation import check_is_fitted
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 def _check_sample_weight(weights: np.ndarray, X, dtype):
@@ -34,11 +39,11 @@ def _check_sample_weight(weights: np.ndarray, X, dtype):
         weights = np.full(n_samples, weights, dtype)
 
     if weights.ndim != 1:
-        raise ValueError("Sample weights must be 1D array or scalar")
+        msg = "Sample weights must be 1D array or scalar"
+        raise ValueError(msg)
     if weights.shape != (n_samples,):
-        raise ValueError(
-            "weights.shape == {}, expected {}".format(weights.shape, (n_samples,))
-        )
+        msg = f"weights.shape == {weights.shape}, expected {(n_samples,)}"
+        raise ValueError(msg)
 
     return weights
 
@@ -61,12 +66,12 @@ def _assemble_regression_matrix(X, breaks, degree):
         [ ...                                                                                             ...]
 
         for degrees d1, ..., di and breakpoints b1, ..., bj
-    """  # noqa: E501,B950
+    """
     Acols = []
     bins = np.digitize(X, breaks).clip(None, len(breaks) - 1)
     for i, d in enumerate(degree):
         for k in range(d + 1):
-            Acols.append(np.where(bins == i + 1, X**k, 0.0))
+            Acols.append(np.where(bins == i + 1, X**k, 0.0))  # noqa PERF401
 
     A = np.column_stack(Acols)
     return A
@@ -150,7 +155,7 @@ def _fit_opt(breaks, X, y, break_0, break_n, degree, continuity="c0", weights=No
     try:
         _, ssr = _lstsq_constrained(X, y, b_, degree, continuity, weights)
     except linalg.LinAlgError as e:  # pragma: no cover
-        print(e)
+        logger.warning(e)
         ssr = np.inf
 
     return ssr
@@ -269,7 +274,7 @@ def _lstsq_constrained(
     Aw = A * weights.reshape(-1, 1)
     yw = y * weights
 
-    if continuity is not None and len(breaks) > 2:
+    if continuity is not None and len(breaks) > 2:  # noqa PLR2004
         C = _assemble_continuity_constraints(breaks, degree)
         r, _ = C.shape
 
@@ -291,6 +296,7 @@ def _auto_piecewise_regression(
     y,
     n_segments,
     degree,
+    *,
     continuity="c0",
     weights=None,
     solver="auto",
@@ -330,7 +336,8 @@ def _auto_piecewise_regression(
 
     _valid_solvers = ("diffevo", "L-BFGS-B", "Nelder-Mead", "Powell")
     if solver not in _valid_solvers:
-        raise ValueError("Valid solvers are: {}. Got {}".format(_valid_solvers, solver))
+        msg = f"Valid solvers are: {_valid_solvers}. Got {solver}"
+        raise ValueError(msg)
 
     if solver == "diffevo":
         breakpoints, n_iter = _solve_diffevo(
@@ -345,14 +352,11 @@ def _auto_piecewise_regression(
             random_state=random_state,
         )
     else:
-        breakpoints, n_iter = _solve_minimize(
-            X, y, n_segments, solver, degree, continuity, weights
-        )
+        breakpoints, n_iter = _solve_minimize(X, y, n_segments, solver, degree, continuity, weights)
 
     if return_n_iter:
         return breakpoints, n_iter
-    else:
-        return breakpoints  # pragma: no cover
+    return breakpoints  # pragma: no cover
 
 
 def _solve_diffevo(
@@ -431,15 +435,11 @@ class _BasePiecewiseRegressor(RegressorMixin):
         self.degree = degree
         self.continuity = continuity
 
-    def _assemble_regression_matrix(
-        self, X: npt.ArrayLike, breaks: npt.ArrayLike
-    ) -> npt.ArrayLike:
+    def _assemble_regression_matrix(self, X: npt.ArrayLike, breaks: npt.ArrayLike) -> npt.ArrayLike:
         return _assemble_regression_matrix(X, breaks, self.degree)
 
     # noinspection PyTypeChecker
-    def _decision_function(
-        self, X: npt.ArrayLike, breaks: npt.ArrayLike
-    ) -> npt.ArrayLike:
+    def _decision_function(self, X: npt.ArrayLike, breaks: npt.ArrayLike) -> npt.ArrayLike:
         X = check_array(X, accept_sparse=True, ensure_2d=False)
         check_is_fitted(self)
         A = self._assemble_regression_matrix(X, breaks)
@@ -467,11 +467,8 @@ class _BasePiecewiseRegressor(RegressorMixin):
 
         _valid_continuities = ("c0",)
         if self.continuity and self.continuity not in _valid_continuities:
-            raise ValueError(
-                "Continuity must be one of: {}. Got {}".format(
-                    _valid_continuities, self.continuity
-                )
-            )
+            msg = f"Continuity must be one of: {_valid_continuities}. Got {self.continuity}"
+            raise ValueError(msg)
 
         self.coef_, self.ssr_ = _lstsq_constrained(
             X, y, breaks, self.degree, self.continuity, weights
@@ -511,7 +508,7 @@ class PiecewiseLinearRegression(BaseEstimator, _BasePiecewiseRegressor):
         *,
         breakpoints: npt.ArrayLike = None,
         degree: int | list[int] = 1,
-        continuity: str = "c0"
+        continuity: str = "c0",
     ) -> None:
         """Initialize the regression object."""
         self.breakpoints = breakpoints
@@ -586,7 +583,7 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
         degree: int | list[int] = 1,
         continuity: str = "c0",
         solver: str = "auto",
-        random_state: Any = None
+        random_state: Any = None,
     ) -> None:
         """Initialize the auto regression object."""
         self.n_segments = n_segments
@@ -621,8 +618,8 @@ class AutoPiecewiseRegression(BaseEstimator, _BasePiecewiseRegressor):
             y,
             self.n_segments,
             self.degree,
-            self.continuity,
-            weights,
+            continuity=self.continuity,
+            weights=weights,
             solver=self.solver,
             random_state=random_state_,
             return_n_iter=True,
