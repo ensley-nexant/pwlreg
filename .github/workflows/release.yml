@@ -1,76 +1,110 @@
-name: Release Drafter
+name: Release
 
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+on: push
 
 jobs:
-  update_release_draft:
-    permissions:
-      contents: write
-      pull-requests: read
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Install Hatch
-        run: |
-          pipx install hatch
-        shell: bash
-
-      - name: Detect and tag new version
-        id: check-version
-        uses: salsify/action-detect-and-tag-new-version@v2.0.3
-        with:
-          version-command: |
-            hatch version
-
-      - uses: release-drafter/release-drafter@v6
-        with:
-          config-name: "release-drafter.yml"
-          publish: ${{ steps.check-version.outputs.tag != '' }}
-          tag: ${{ steps.check-version.outputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-  release-build:
-    runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: build release distributions
+          python-version: "3.x"
+          architecture: x64
+
+      - name: Install Hatch
+        run: >-
+          python3 -m
+          pip install
+          hatch
+          --user
+
+      - name: Build with Hatch
         run: |
-          pipx install hatch
           hatch build
 
-      - name: upload dists
+      - name: Store distribution packages
         uses: actions/upload-artifact@v4
         with:
-          name: release-dists
+          name: python-package-distributions
           path: dist/
 
-  pypi-publish:
-    runs-on: ubuntu-latest
+  publish-to-pypi:
+    name: Publish distribution to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
     needs:
-      - release-build
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/riweather
     permissions:
       id-token: write
 
     steps:
-      - name: Retrieve release distributions
+      - name: Download all distributions
         uses: actions/download-artifact@v4
         with:
-          name: release-dists
+          name: python-package-distributions
           path: dist/
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.6.4
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+
+  github-release:
+    name: Upload to Github Release
+    needs:
+      - publish-to-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create
+          "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --notes ""
+
+      - name: Upload artifacts to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload
+          "$GITHUB_REF_NAME" dist/**
+          --repo "$GITHUB_REPOSITORY"
+
+  publish-to-test-pypi:
+    name: Publish distribution to TestPyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/riweather
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
